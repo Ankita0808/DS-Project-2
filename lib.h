@@ -7,6 +7,7 @@
 
 #define NAMENODE_FILENAME "//afs/cs.pitt.edu/usr0/ankita/public/CS2510Prj2anm249/namenode_ip"
 #define SERVER_FILENAME "//afs/cs.pitt.edu/usr0/ankita/public/CS2510Prj2anm249/server_ip"
+#define SERVER_FILENAME2 "//afs/cs.pitt.edu/usr0/ankita/public/CS2510Prj2anm249/server_ip2"
 #define TMP_FILENAME "//afs/cs.pitt.edu/usr0/ankita/public/CS2510Prj2anm249/intermediate_file/"
 #define INVERTED_INDEX "//afs/cs.pitt.edu/usr0/ankita/public/CS2510Prj2anm249/inverted_index/"
 
