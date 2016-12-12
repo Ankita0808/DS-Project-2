@@ -71,7 +71,7 @@ struct namenode_table
 	char helper_port[100];
 	int time;
 	int avail;  // Helper is available or not: 0: avail; 1: not avail
-	int type; //Helper is either a index helper (0) or a search helper (1)
+	int16_t type; //Helper is either a index helper (0) or a search helper (1)
 };
 
 struct namenode_table namenode_table[NAMENODE_TABLE_SIZE];
@@ -112,8 +112,7 @@ int write_namenode_ip(char *addrstr, char *port)
 //receiving register message from Helper
 void *register_Namenode(void *arg)
 {
-	int16_t register_type, program_version;
-	int helper_type;
+	int16_t register_type, program_version, helper_type;
 	char buf[MAX_BUF_LEN];
 	char program_name[20], procedure_name[20];
 	int i, j, resetTimeout, newServer, packet_size;

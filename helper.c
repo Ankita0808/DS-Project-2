@@ -6,7 +6,6 @@
 
 #include "network_function.h"
 
-int helper_id_type; 
 
 struct register_info
 {
@@ -128,7 +127,7 @@ void *register_periodically(void *arg)
 }
 
 /* register to the name node */
-int sendRegister(char *server_ip, char *server_port)
+int sendRegister(char *server_ip, char *server_port, int type)
 {
 	struct register_info *t;
 	pthread_t checkTimeout_thread;
@@ -136,7 +135,7 @@ int sendRegister(char *server_ip, char *server_port)
 	t = (struct register_info *)malloc(sizeof(struct register_info));
 	strcpy(t->server_ip, server_ip);
 	strcpy(t->server_port, server_port);
-	t->helper_id_type=helper_id_type;
+	t->helper_id_type=type;
 	
 	if (pthread_create(&checkTimeout_thread, NULL, register_periodically, (void *)t) != 0) //register_periodically (void *)t
 	{
@@ -1171,7 +1170,6 @@ int main(int argc, char *argv[])
 
     }
     else if (argv[1][0]==49 || argv[1][0]==1)
-    	printf("Setting helper_id_type to 1");
     	helper_id_type=SEARCH_TYPE;
     else{
         printf( "usage: %s {0/1}, where 0 means index worker, 1 means search worker \n", argv[0] );
@@ -1182,7 +1180,7 @@ int main(int argc, char *argv[])
 	{
 		return -1;
 	}
-	sendRegister(helper_ip, helper_port);
+	sendRegister(helper_ip, helper_port, helper_id_type);
 	//sleep(3);
 	receiveTask(sockfd, helper_ip, helper_port);
 	return 0;
