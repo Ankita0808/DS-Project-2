@@ -380,6 +380,7 @@ void run_namenode(int sockfd)
 void *nameNode()
 {
 	int sockfd;
+	int sockfd2;
 	char namenode_ip[100], namenode_port[1000];
 	char server_ip[100], server_port[100];
 	int redundancy=-1;
@@ -390,31 +391,31 @@ void *nameNode()
 
 	//TODO: 
 	//1) Check if server 1 exists AND you can ping it
-	if (readNameNodeIP (char *server_ip, char *server_port, 0)==1)
+	if (readNameNodeIP (server_ip, server_port, 0)==1)
 	{
-		if ((sockfd = connectTCP_server(namenode_ip, namenode_port)) == 0)
+		if ((sockfd2= connectTCP_server(namenode_ip, namenode_port)) == 0)
 		{
 			//You are now the first node, since it is not up
 			redundancy=0;
 
 
 		} else {
-			close(sockfd);
+			close(sockf2);
 		}
 	} else {
 		//Does not currently exist, so you are the first node
 		redundancy=0;
 	} 
 
-	if (redundancy < 0 && readNameNodeIP (char *server_ip, char *server_port, 1)==1)
+	if (redundancy < 0 && readNameNodeIP (server_ip, server_port, 1)==1)
 	{
-		if ((sockfd = connectTCP_server(namenode_ip, namenode_port)) == 0)
+		if ((sockfd2 = connectTCP_server(namenode_ip, namenode_port)) == 0)
 		{
 			//You are now the second node, since it is not up
 			redundancy=1;
 
 		} else{
-			close(sockfd);
+			close(sockfd2);
 		}
 	} else {
 		redundancy=1;
@@ -452,11 +453,15 @@ int check_current_server_alive()
 
 
 
-int write_server_ip(char *addrstr, char *port)
+int write_server_ip(char *addrstr, char *port, int redundancy)
 {
 	FILE *ptr_file;
 
-	ptr_file =fopen(SERVER_FILENAME, "w");
+	if (redundancy==0)
+		ptr_file =fopen(SERVER_FILENAME, "w");
+	else if (redundancy==1)
+		ptr_file =fopen(SERVER_FILENAME2, "w");
+
 	if (!ptr_file)
 	{
 		perror("server: open file to write");
@@ -1608,7 +1613,7 @@ int tinyGoogleServer()
 	int sockfd2;
 	int redundancy=-1;
 	char existing_sip[100], existing_port[100];
-	if (readServerIP (char *existing_sip, char *existing_port, 0)==1)
+	if (readServerIP (existing_sip, existing_port, 0)==1)
 	{
 		if ((sockfd2 = connectTCP_server(existing_sip, existing_port)) == 0)
 		{
@@ -1632,7 +1637,7 @@ int tinyGoogleServer()
 			redundancy=1;
 
 		} else{
-			close(sockfd2;
+			close(sockfd2);
 		}
 	} else {
 		redundancy=1;
