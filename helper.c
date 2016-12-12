@@ -12,6 +12,7 @@ struct register_info
 {
 	char server_ip[100];
 	char server_port[100];
+	int helper_id_type;
 };
 
 struct pair_t
@@ -109,7 +110,7 @@ void *register_periodically(void *arg)
 		memset(buf, 0, sizeof(buf));
 		
 		// pack the register data
-		packetsize = pack(buf, "hss",(int16_t)1, t->server_ip, t->server_port, helper_id_type); // 1: register
+		packetsize = pack(buf, "hss",(int16_t)1, t->server_ip, t->server_port, (int16_t)t->helper_id_type); // 1: register
 		
 		// send
 		if ((numbytes = send(sockfd, buf, packetsize,MSG_NOSIGNAL)) == -1)
@@ -135,6 +136,7 @@ int sendRegister(char *server_ip, char *server_port)
 	t = (struct register_info *)malloc(sizeof(struct register_info));
 	strcpy(t->server_ip, server_ip);
 	strcpy(t->server_port, server_port);
+	t->helper_id_type=helper_id_type;
 	
 	if (pthread_create(&checkTimeout_thread, NULL, register_periodically, (void *)t) != 0) //register_periodically (void *)t
 	{
@@ -1159,16 +1161,20 @@ int main(int argc, char *argv[])
 	char helper_ip[100], helper_port[100];
 	if ( argc != 2 ) /* argc should be 2 for correct execution */
     {
-        printf( "usage: %s {0/1}, where 0 means index worker, 1 means search worker ", argv[0] );
+        printf( "usage: %s {0/1}, where 0 means index worker, 1 means search worker \n", argv[0] );
         exit(0);
     }
 
     if (argv[1][0] == 48 || argv[1][0]==0)
-    	helper_id_type=0;
+    {
+    	helper_id_type=INDEX_TYPE;
+
+    }
     else if (argv[1][0]==49 || argv[1][0]==1)
-    	helper_id_type=1;
+    	printf("Setting helper_id_type to 1");
+    	helper_id_type=SEARCH_TYPE;
     else{
-        printf( "usage: %s {0/1}, where 0 means index worker, 1 means search worker ", argv[0] );
+        printf( "usage: %s {0/1}, where 0 means index worker, 1 means search worker \n", argv[0] );
         exit(0);
     }
 

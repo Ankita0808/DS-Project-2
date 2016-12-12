@@ -88,6 +88,7 @@ int main()
 			// open socket to connect to server
 			if ((sockfd = connectTCP_server(server_ip, server_port)) == 0)
 			{
+				num_redundancy_tries++;
 				perror("Connection to server:");
 				printf("DEBUG: name server number %d is offline, switching to next redundant server",current_redundant_server);
 				current_redundant_server=(current_redundant_server+1)%max_redundancy;
@@ -153,7 +154,7 @@ int main()
 			if (readServerIP(server_ip, server_port,current_redundant_server)==0)
 			{
 				num_redundancy_tries++;
-				printf("DEBUG: name server number %d was not initialized",current_redundant_server);
+				printf("\nDEBUG: name server number %d was not initialized",current_redundant_server);
 				current_redundant_server=(current_redundant_server+1)%max_redundancy;
 				continue;
 			}
@@ -161,8 +162,9 @@ int main()
 			// open socket to connect to namenode
 			if ((sockfd = connectTCP_server(server_ip, server_port)) == 0)
 			{
+				num_redundancy_tries++;
 				perror("Connection to namenode:");				
-				printf("DEBUG: name server number %d is offline, switching to next redundant server",current_redundant_server);
+				printf("DEBUG: name server number %d is offline, switching to next redundant server\n",current_redundant_server);
 				current_redundant_server=(current_redundant_server+1)%max_redundancy;
 				continue;
 			}
