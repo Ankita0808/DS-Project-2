@@ -393,7 +393,7 @@ void *nameNode()
 	//1) Check if server 1 exists AND you can ping it
 	if (readNameNodeIP (server_ip, server_port, 0)==1)
 	{
-		if ((sockfd2= connectTCP_server(server_ip, server_port)) == 0)
+		if ((sockfd2= connectTCP_server(server_ip, server_port)) == -1)
 		{
 			//You are now the first node, since it is not up
 			redundancy=0;
@@ -409,7 +409,7 @@ void *nameNode()
 
 	if (redundancy < 0 && readNameNodeIP (server_ip, server_port, 1)==1)
 	{
-		if ((sockfd2 = connectTCP_server(server_ip, server_port)) == 0)
+		if ((sockfd2 = connectTCP_server(server_ip, server_port)) == -1)
 		{
 			//You are now the second node, since it is not up
 			redundancy=1;
@@ -423,7 +423,7 @@ void *nameNode()
 
 	if (redundancy<0)
 	{
-		printf("Both name servers are currently running! We only support 2. Exiting...");
+		printf("Two name servers are already running! We only support 2. Exiting...");
 		exit(1);
 	}
 
@@ -1615,7 +1615,7 @@ int tinyGoogleServer()
 	char existing_sip[100], existing_port[100];
 	if (readServerIP (existing_sip, existing_port, 0)==1)
 	{
-		if ((sockfd2 = connectTCP_server(existing_sip, existing_port)) == 0)
+		if ((sockfd2 = connectTCP_server(existing_sip, existing_port)) == -1)
 		{
 			//You are now the first node, since it is not up
 			redundancy=0;
@@ -1631,7 +1631,7 @@ int tinyGoogleServer()
 
 	if (redundancy < 0 && readServerIP (existing_sip, existing_port, 1)==1)
 	{
-		if ((sockfd2 = connectTCP_server(existing_sip, existing_port)) == 0)
+		if ((sockfd2 = connectTCP_server(existing_sip, existing_port)) == -1)
 		{
 			//You are now the second node, since it is not up
 			redundancy=1;
