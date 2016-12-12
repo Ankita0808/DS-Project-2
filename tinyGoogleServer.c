@@ -168,17 +168,22 @@ void *register_Namenode(void *arg)
 			//New Helper Register
 			if (newServer == 0)
 			{
-				printf("New Helper: %s %s %hu\n",server_ip, server_port, helper_type);
+				
 				pthread_mutex_lock (&namenode_running_mutex);
+				if (register_type==2){
+					namenode_table[helper_number-1].type = SEARCH_TYPE;
+					printf("New Helper: %s %s %hu\n",server_ip, server_port, SEARCH_TYPE);
+				}
+				else {
+					namenode_table[helper_number-1].type = INDEX_TYPE;
+					printf("New Helper: %s %s %hu\n",server_ip, server_port, INDEX_TYPE);
+				}
 				helper_number++;
 				strcpy(namenode_table[helper_number-1].helper_ip,server_ip);
 				strcpy(namenode_table[helper_number-1].helper_port,server_port);												
 				namenode_table[helper_number-1].time = 2;
 				namenode_table[helper_number-1].avail = 0;
-				if (register_type==2)
-					namenode_table[helper_number-1].type = SEARCH_TYPE;
-				else 
-					namenode_table[helper_number-1].type = INDEX_TYPE;
+
 				pthread_mutex_unlock (&namenode_running_mutex);
 			}
 			

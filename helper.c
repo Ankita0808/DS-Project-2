@@ -1167,7 +1167,7 @@ int main(int argc, char *argv[])
         printf( "usage: %s {0/1}, where 0 means index worker, 1 means search worker \n", argv[0] );
         exit(0);
     }
-
+    int helper_id_type;
     if (argv[1][0] == 48 || argv[1][0]==0)
     {
     	helper_id_type=INDEX_TYPE;
