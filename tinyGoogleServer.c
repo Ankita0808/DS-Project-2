@@ -30,7 +30,7 @@ int server_thread_available[THREAD_NUMBER];
 pthread_mutex_t server_running_mutex;
 
 //For copy-blocking
-pthread_t copy_thread;
+//pthread_t copy_thread;
 int copy_needed_thread_safe;
 int copy_in_progress;
 pthread_mutex_t copy_mutex;
@@ -1278,50 +1278,7 @@ int server_query(char *query_string, char ***doc, int *doc_number)
 	return 1;
 }
 
-void *copy_thread_work(void *arg)
-{
-	pthread_mutex_lock(&copy_mutex);
-	if (copy_in_progress==1)
-	{
-		printf("Refreshing stored inverted index...\n");
 
-		char cpy_cmd[200];
-		char d1[200];
-		char d2[200];
-		strcpy(cpy_cmd,"cp -r ");
-		strcpy(d1,INVERTED_INDEX);
-		strcpy(d2,INVERTED_INDEX_COPY_TMP);
-		strcat(cpy_cmd,d1);
-		strcat(cpy_cmd," ");
-		strcat(cpy_cmd, d2);
-
-		printf("Command is %s\n"+cpy_cmd);
-		//int status_cpy_cmd = system(cpy_cmd);
-		printf("Copying done, now moving...");
-
-		remove_directory(INVERTED_SEARCH_INDEX);
-
-		char mv_cmd[200];
-		char m1[200];
-		char m2[200];
-		strcpy(mv_cmd,"mv ");
-		strcpy(m1,INVERTED_INDEX_COPY_TMP);
-		strcpy(m2,INVERTED_SEARCH_INDEX);
-		strcat(mv_cmd,m1);
-		strcat(mv_cmd," ");
-		strcat(mv_cmd, m2);
-
-		printf("Command is %s\n"+mv_cmd);
-		//int status_mv_cmd = system(mv_cmd);
-
-
-		printf("Refreshing complete.\n");
-		copy_in_progress=0;
-	}
-
-	pthread_mutex_unlock(&copy_mutex);
-	pthread_exit(NULL);
-}
 
 void *server_thread_work(void *arg)
 {
@@ -1428,23 +1385,24 @@ void *server_thread_work(void *arg)
 			break;
 	}
 
-	pthread_mutex_lock(&copy_mutex);
-	if (request_type==1)
-		copy_needed_thread_safe=1;
-	pthread_mutex_unlock(&copy_mutex);
 	
 	close(connfd);
 
-	pthread_mutex_lock(&copy_mutex);
 	pthread_mutex_lock (&server_running_mutex);
-
 	server_thread_available[thread_id] = 0;
+	pthread_mutex_unlock (&server_running_mutex);
+
+	pthread_mutex_lock(&copy_mutex);
+	if (request_type==1)
+		copy_needed_thread_safe=1;
+
+
 	int holdoff = 0;
 	if (copy_needed_thread_safe)
 	{
 		for (i = 0; i< THREAD_NUMBER; i++)
 		{
-			if (server_thread_available[THREAD_NUMBER] ==1)
+			if (server_thread_available[THREAD_NUMBER] == 1)
 			{
 				holdoff = 1;
 				break;
@@ -1453,14 +1411,43 @@ void *server_thread_work(void *arg)
 		if (holdoff == 0) //No one is doing anything: update the real index
 		{
 			copy_in_progress=1;	
-			printf("Trying to launch a copy_thread");
-			if (pthread_create(&copy_thread, NULL, copy_thread_work, NULL))
-			{
-				printf("Failed to create copy thread ");
-			}
-		}
+
+			printf("Refreshing stored inverted index...\n");
+
+			char cpy_cmd[200];
+			char d1[200];
+			char d2[200];
+			strcpy(cpy_cmd,"cp -r ");
+			strcpy(d1,INVERTED_INDEX);
+			strcpy(d2,INVERTED_INDEX_COPY_TMP);
+			strcat(cpy_cmd,d1);
+			strcat(cpy_cmd," ");
+			strcat(cpy_cmd, d2);
+
+			printf("Command is %s\n",cpy_cmd);
+			//int status_cpy_cmd = system(cpy_cmd);
+			printf("Copying done, now moving...");
+
+			remove_directory(INVERTED_SEARCH_INDEX);
+
+			char mv_cmd[200];
+			char m1[200];
+			char m2[200];
+			strcpy(mv_cmd,"mv ");
+			strcpy(m1,INVERTED_INDEX_COPY_TMP);
+			strcpy(m2,INVERTED_SEARCH_INDEX);
+			strcat(mv_cmd,m1);
+			strcat(mv_cmd," ");
+			strcat(mv_cmd, m2);
+
+			printf("Command is %s\n",mv_cmd);
+			//int status_mv_cmd = system(mv_cmd);
+
+
+			printf("Refreshing complete.\n");
+			copy_in_progress=0;
+		
 	}
-	pthread_mutex_unlock (&server_running_mutex);
 	pthread_mutex_unlock(&copy_mutex);
 
 	pthread_exit(NULL);
