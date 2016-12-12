@@ -170,6 +170,7 @@ void *register_Namenode(void *arg)
 			{
 				
 				pthread_mutex_lock (&namenode_running_mutex);
+				helper_number++;
 				if (register_type==2){
 					namenode_table[helper_number-1].type = SEARCH_TYPE;
 					printf("New Helper: %s %s %hu\n",server_ip, server_port, SEARCH_TYPE);
@@ -178,7 +179,6 @@ void *register_Namenode(void *arg)
 					namenode_table[helper_number-1].type = INDEX_TYPE;
 					printf("New Helper: %s %s %hu\n",server_ip, server_port, INDEX_TYPE);
 				}
-				helper_number++;
 				strcpy(namenode_table[helper_number-1].helper_ip,server_ip);
 				strcpy(namenode_table[helper_number-1].helper_port,server_port);												
 				namenode_table[helper_number-1].time = 2;
@@ -515,7 +515,6 @@ int  server_index(char URL[MAX_URL_LEN], long int segment_size)
 			for (i=0; i< helper_counter; i++)
 			{
 				for (j=0; j< helper_number; j++)
-					if (namenode_table[j].type==SEARCH_TYPE) continue; //don't include search helpers
 
 					if (strcmp(helper_table[i].ip,namenode_table[j].helper_ip) == 0 
 							&& strcmp(helper_table[i].port,namenode_table[j].helper_port) ==0 )
@@ -534,7 +533,6 @@ int  server_index(char URL[MAX_URL_LEN], long int segment_size)
 			int check = 0;
 			for (j=0; j < helper_number; j++)
 			{
-				if (namenode_table[j].type==SEARCH_TYPE) continue; //don't include search helpers
 
 				if (strcmp(helper_table[i].ip, namenode_table[j].helper_ip) ==0 && 
 							strcmp(helper_table[i].port, namenode_table[j].helper_port) == 0)
@@ -734,8 +732,6 @@ int  server_index(char URL[MAX_URL_LEN], long int segment_size)
 			{
 				for (j=0; j< helper_number; j++)
 
-					if (namenode_table[j].type==SEARCH_TYPE) continue; //don't include search helpers
-
 					if (strcmp(helper_table[i].ip,namenode_table[j].helper_ip) == 0 
 							&& strcmp(helper_table[i].port,namenode_table[j].helper_port) ==0 )
 					{	
@@ -753,7 +749,6 @@ int  server_index(char URL[MAX_URL_LEN], long int segment_size)
 			int check = 0;
 			for (j=0; j < helper_number; j++)
 			{
-				if (namenode_table[j].type==SEARCH_TYPE) continue; //don't include search helpers
 
 				if (strcmp(helper_table[i].ip, namenode_table[j].helper_ip) ==0 && 
 							strcmp(helper_table[i].port, namenode_table[j].helper_port) == 0)
@@ -1001,8 +996,6 @@ int server_query(char *query_string, char ***doc, int *doc_number)
 			{
 				for (j=0; j< helper_number; j++)
 					{
-						if (namenode_table[j].type==INDEX_TYPE) continue; //don't include index helpers
-
 						if (strcmp(helper_table[i].ip,namenode_table[j].helper_ip) == 0 
 								&& strcmp(helper_table[i].port,namenode_table[j].helper_port) ==0 )
 						{	
@@ -1022,7 +1015,7 @@ int server_query(char *query_string, char ***doc, int *doc_number)
 			int check = 0;
 			for (j=0; j < helper_number; j++)
 			{
-				if (namenode_table[j].type==INDEX_TYPE) continue; //don't include index helpers
+
 				if (strcmp(helper_table[i].ip, namenode_table[j].helper_ip) ==0 && 
 							strcmp(helper_table[i].port, namenode_table[j].helper_port) == 0)
 				{
