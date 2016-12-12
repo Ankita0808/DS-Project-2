@@ -12,6 +12,76 @@
 #include <math.h>
 
 
+/**************** REGISTER FUNCTION **********************/
+int readNameNodeIP (char *server_ip, char *server_port, int redundancy)
+{
+	// read IP address and port from file define in header.h
+	FILE *ptr_file;
+	char buf[100];
+	// read the global file
+	if (redundancy==0)
+		ptr_file =fopen(NAMENODE_FILENAME, "r");
+	else if (redundancy==1)
+		ptr_file =fopen(NAMENODE_FILENAME2, "r");
+	if (!ptr_file)
+	{
+		return 0;
+		//printf("no file open");
+	}
+	if(fgets(buf,1000, ptr_file)!=NULL)
+	{
+		// ip address
+		strcpy(server_ip, strtok(buf, ","));
+
+		// port number
+		strcpy(server_port, strtok(NULL, ","));
+	}
+	
+	// if(server_ip && server_port)
+		// printf("Namenode ip and port is %s %s\n", server_ip, server_port);
+		
+	fclose(ptr_file);
+	
+	return 1;
+}
+
+int readServerIP (char *server_ip, char *server_port, int redundancy)
+{
+	// read IP address and port from file define in header.h
+	FILE *ptr_file;
+	char buf[100];
+	// read the global file
+	if (redundancy==0)
+		ptr_file =fopen(SERVER_FILENAME, "r");
+	else if (redundancy==1)
+		ptr_file =fopen(SERVER_FILENAME2, "r");
+	else
+	{
+		//printf("This server currently only has a redundancy of 2 (coding error)");
+		return 0;
+	}
+	if (!ptr_file)
+	{
+		//printf("no file open");
+		return 0;
+	}
+	if(fgets(buf,1000, ptr_file)!=NULL)
+	{
+		// ip address
+		strcpy(server_ip, strtok(buf, ","));
+
+		// port number
+		strcpy(server_port, strtok(NULL, ","));
+	}
+	// if(server_ip && server_port)
+		// printf("Server ip and port is %s %s\n", server_ip, server_port);
+		
+	fclose(ptr_file);
+	
+	return 1;
+}
+
+
 /****************** THREAD VARIABLE PART **************/
 struct thread_info 
 {
@@ -33,7 +103,7 @@ pthread_mutex_t server_running_mutex;
 //pthread_t copy_thread;
 int copy_needed_thread_safe;
 int copy_in_progress;
-pthread_mutex_t copy_mutex;
+//pthread_mutex_t copy_mutex;
 
 /****************** END THREAD VARIABLE PART **************/
 
@@ -95,11 +165,15 @@ pthread_mutex_t namenode_running_mutex;
 */
 
 // write Tiny Google Server Namenode ip address & port number to FILE
-int write_namenode_ip(char *addrstr, char *port)
+int write_namenode_ip(char *addrstr, char *port, int redundancy)
 {
 	FILE *ptr_file;
 
-	ptr_file =fopen(NAMENODE_FILENAME, "w");
+	if (redundancy==0)
+		ptr_file =fopen(NAMENODE_FILENAME, "w");
+	else if (redundancy==1)
+		ptr_file =fopen(NAMENODE_FILENAME2, "w");
+
 	if (!ptr_file)
 	{
 		perror("server: open file to write");
@@ -307,12 +381,53 @@ void *nameNode()
 {
 	int sockfd;
 	char namenode_ip[100], namenode_port[1000];
+	char server_ip[100], server_port[100];
+	int redundancy=-1;
 	// open TCP socket and bind
 	sockfd = createTCP_server(namenode_ip, namenode_port);
 	printf("namenode ip and port is: %s %s \n", namenode_ip, namenode_port);
 	
+
+	//TODO: 
+	//1) Check if server 1 exists AND you can ping it
+	if (readNameNodeIP (char *server_ip, char *server_port, 0)==1)
+	{
+		if ((sockfd = connectTCP_server(namenode_ip, namenode_port)) == 0)
+		{
+			//You are now the first node, since it is not up
+			redundancy=0;
+
+
+		} else {
+			close(sockfd);
+		}
+	} else {
+		//Does not currently exist, so you are the first node
+		redundancy=0;
+	} 
+
+	if (redundancy < 0 && readNameNodeIP (char *server_ip, char *server_port, 1)==1)
+	{
+		if ((sockfd = connectTCP_server(namenode_ip, namenode_port)) == 0)
+		{
+			//You are now the second node, since it is not up
+			redundancy=1;
+
+		} else{
+			close(sockfd);
+		}
+	} else {
+		redundancy=1;
+	}
+
+	if (redundancy<0)
+	{
+		printf("Both name servers are currently running! We only support 2. Exiting...");
+		exit(1);
+	}
+
 	// write IP address and port to File
-	write_namenode_ip(namenode_ip, namenode_port);
+	write_namenode_ip(namenode_ip, namenode_port,redundancy);
 	
 	// run namenode loop
 	run_namenode(sockfd);
@@ -1306,9 +1421,7 @@ void *server_thread_work(void *arg)
 	switch(request_type)
 	{
 
-		pthread_mutex_lock(&copy_mutex);
 		while(copy_in_progress==1);
-		pthread_mutex_unlock(&copy_mutex);
 
 		case(1): // indexing request
 			
@@ -1392,7 +1505,8 @@ void *server_thread_work(void *arg)
 	server_thread_available[thread_id] = 0;
 	pthread_mutex_unlock (&server_running_mutex);
 
-	pthread_mutex_lock(&copy_mutex);
+	//print('Entering copy mutex...');
+	//pthread_mutex_lock(&copy_mutex);
 	if (request_type==1)
 		copy_needed_thread_safe=1;
 
@@ -1402,7 +1516,7 @@ void *server_thread_work(void *arg)
 	{
 		for (i = 0; i< THREAD_NUMBER; i++)
 		{
-			if (server_thread_available[THREAD_NUMBER] == 1)
+			if (server_thread_available[i] == 1)
 			{
 				holdoff = 1;
 				break;
@@ -1446,9 +1560,11 @@ void *server_thread_work(void *arg)
 
 			printf("Refreshing complete.\n");
 			copy_in_progress=0;
+			copy_needed_thread_safe=0;
+		}
 		
 	}
-	pthread_mutex_unlock(&copy_mutex);
+	//pthread_mutex_unlock(&copy_mutex);
 
 	pthread_exit(NULL);
 }
@@ -1488,7 +1604,54 @@ int tinyGoogleServer()
 		}
 		
 	printf("Server IP and Port is %s %s\n", server_ip, server_port);
-	write_server_ip(server_ip, server_port );
+
+	int sockfd2;
+	int redundancy=-1;
+	char existing_sip[100], existing_port[100];
+	if (readServerIP (char *existing_sip, char *existing_port, 0)==1)
+	{
+		if ((sockfd2 = connectTCP_server(existing_sip, existing_port)) == 0)
+		{
+			//You are now the first node, since it is not up
+			redundancy=0;
+
+
+		} else {
+			close(sockfd2);
+		}
+	} else {
+		//Does not currently exist, so you are the first node
+		redundancy=0;
+	} 
+
+	if (redundancy < 0 && readNameNodeIP (char *existing_sip, char *existing_port, 1)==1)
+	{
+		if ((sockfd2 = connectTCP_server(existing_sip, existing_port)) == 0)
+		{
+			//You are now the second node, since it is not up
+			redundancy=1;
+
+		} else{
+			close(sockfd2;
+		}
+	} else {
+		redundancy=1;
+	}
+
+	if (redundancy<0)
+	{
+		printf("Both servers are currently running! We only support 2. Exiting...");
+		exit(1);
+	}
+	//TODO: 
+	//1) Check if server 1 exists AND you can ping it
+
+	//2) Check if server 2 exists AND you can ping it 
+
+	//If no to both, exit
+
+
+	write_server_ip(server_ip, server_port, redundancy );
 	while (1)
 	{
 		// Accept new request for a connection
@@ -1547,7 +1710,7 @@ int main()
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 	pthread_mutex_init (&server_running_mutex, NULL);
-	pthread_mutex_init (&copy_mutex, NULL);
+	//pthread_mutex_init (&copy_mutex, NULL);
 		
 	// update_Namenode() periodically delete unregister Helper
 	if (pthread_create(&namenode, NULL, nameNode, NULL) != 0) 

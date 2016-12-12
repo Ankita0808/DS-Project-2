@@ -52,13 +52,16 @@ struct entry_t
 
 
 /**************** REGISTER FUNCTION **********************/
-int readNameNodeIP (char *server_ip, char *server_port)
+int readNameNodeIP (char *server_ip, char *server_port, int redundancy)
 {
 	// read IP address and port from file define in header.h
 	FILE *ptr_file;
 	char buf[100];
 	// read the global file
-	ptr_file =fopen(NAMENODE_FILENAME, "r");
+	if (redundancy==0)
+		ptr_file =fopen(NAMENODE_FILENAME, "r");
+	else if (redundancy==1)
+		ptr_file =fopen(NAMENODE_FILENAME2, "r");
 	if (!ptr_file)
 	{
 		return 0;
@@ -95,13 +98,17 @@ void *register_periodically(void *arg)
 	//readNameNodeIP(namenode_ip, namenode_port);
 	//printf("Register to namenode \n");
 	
+	redundancy=0; 
+	max_redun=2;
 	while (1)
 	{
-		readNameNodeIP(namenode_ip, namenode_port);
+		readNameNodeIP(namenode_ip, namenode_port, redundancy);
 		// open socket to connect to namenode
 		if ((sockfd = connectTCP_server(namenode_ip, namenode_port)) == 0)
 		{
 			perror("Connection to namenode:");
+			redundancy=(redundancy+1)%max_redun;
+			printf("Trying other server");
 			sleep(HELPER_REGISTER_TIME_OUT/2);
 			continue;
 		}
