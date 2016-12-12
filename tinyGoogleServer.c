@@ -380,7 +380,7 @@ int remove_directory(const char *path)
              {
                 if (S_ISDIR(statbuf.st_mode))
                 {
-                   r2  = (buf);
+                   r2  = remove_directory(buf);
                 }
                 else
                 {
@@ -1286,9 +1286,9 @@ void *copy_thread_work(void *arg)
 
 
 
-		char[200] cpy_cmd;
-		char[200] d1;
-		char[200] d2;
+		char cpy_cmd[200];
+		char d1[200];
+		char d2[200];
 		strcpy(cpy_cmd,"cp -r ");
 		strpy(d1,INVERTED_INDEX);
 		strpy(d2,INVERTED_INDEX_COPY_TMP);
@@ -1298,12 +1298,12 @@ void *copy_thread_work(void *arg)
 
 		int status_cpy_cmd = system(cpy_cmd);
 
-		
+
 		remove_directory(INVERTED_SEARCH_INDEX);
 
-		char[200] mv_cmd;
-		char[200] m1;
-		char[200] m2;
+		char mv_cmd[200];
+		char m1[200];
+		char m2[200];
 		strcpy(mv_cmd,"mv ");
 		strpy(d1,INVERTED_INDEX_COPY_TMP);
 		strpy(d2,INVERTED_SEARCH_INDEX);
@@ -1324,6 +1324,7 @@ void *copy_thread_work(void *arg)
 
 void *server_thread_work(void *arg)
 {
+
 	char server_ip[100], server_port[100], serverUDP_ip[100], serverUDP_port[100] ;
 	char procedure_name[20], buf[MAX_BUF_LEN], URL[MAX_URL_LEN], query_string[MAX_QUERY_LEN];	
 	int i, connfd, UDPsock,  numbytes, packetsize, thread_id, request_type, doc_num;
@@ -1451,7 +1452,7 @@ void *server_thread_work(void *arg)
 		if (holdoff == 0) //No one is doing anything: update the real index
 		{
 			copy_in_progress=1;	
-			if (pthread_create(&copythread, NULL, copy_thread_work, NULL) 
+			if (pthread_create(&copy_thread, NULL, copy_thread_work, NULL))
 			{
 				printf("Failed to create copy thread ");
 			}
@@ -1482,8 +1483,9 @@ int tinyGoogleServer()
 	for (i = 0; i< THREAD_NUMBER; i++)
 		server_thread_available[THREAD_NUMBER] = 0;
 
-	//initialize copythread as available
-	copy_thread_available = 0;
+	//initialize copy as not needed and not in progress
+	copy_needed_thread_safe = 0;
+	copy_in_progress = 0;
 		
 	t = (struct thread_info *) malloc(sizeof(struct thread_info));	
 	
