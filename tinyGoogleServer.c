@@ -774,7 +774,7 @@ int  server_index(char URL[MAX_URL_LEN], long int segment_size)
 		{
 			if (helper_counter < reduce_work - work_finished)
 			{
-				if (namenode_table[i].type==SEARCH_TYPE) continue; //don't include search helpers
+				if (namenode_table[i].type==SEARCH_TYPE) continue; //don't include inverted_index helpers
 
 				if (namenode_table[i].avail == 0) //helper has no job now
 				{	
@@ -1281,11 +1281,9 @@ int server_query(char *query_string, char ***doc, int *doc_number)
 void *copy_thread_work(void *arg)
 {
 	pthread_mutex_lock(&copy_mutex);
-	if (copy_in_progress)
+	if (copy_in_progress==1)
 	{
-		printf("Refreshing stored inverted index...");
-
-
+		printf("Refreshing stored inverted index...\n");
 
 		char cpy_cmd[200];
 		char d1[200];
@@ -1297,8 +1295,9 @@ void *copy_thread_work(void *arg)
 		strcat(cpy_cmd," ");
 		strcat(cpy_cmd, d2);
 
-		int status_cpy_cmd = system(cpy_cmd);
-
+		printf("Command is %s\n"+cpy_cmd);
+		//int status_cpy_cmd = system(cpy_cmd);
+		printf("Copying done, now moving...");
 
 		remove_directory(INVERTED_SEARCH_INDEX);
 
@@ -1306,16 +1305,17 @@ void *copy_thread_work(void *arg)
 		char m1[200];
 		char m2[200];
 		strcpy(mv_cmd,"mv ");
-		strcpy(d1,INVERTED_INDEX_COPY_TMP);
-		strcpy(d2,INVERTED_SEARCH_INDEX);
-		strcat(mv_cmd,d1);
+		strcpy(m1,INVERTED_INDEX_COPY_TMP);
+		strcpy(m2,INVERTED_SEARCH_INDEX);
+		strcat(mv_cmd,m1);
 		strcat(mv_cmd," ");
-		strcat(mv_cmd, d2);
+		strcat(mv_cmd, m2);
 
-		int status_mv_cmd = system(mv_cmd);
+		printf("Command is %s\n"+mv_cmd);
+		//int status_mv_cmd = system(mv_cmd);
 
 
-		printf("Refreshing complete.");
+		printf("Refreshing complete.\n");
 		copy_in_progress=0;
 	}
 
@@ -1453,6 +1453,7 @@ void *server_thread_work(void *arg)
 		if (holdoff == 0) //No one is doing anything: update the real index
 		{
 			copy_in_progress=1;	
+			printf("Trying to launch a copy_thread");
 			if (pthread_create(&copy_thread, NULL, copy_thread_work, NULL))
 			{
 				printf("Failed to create copy thread ");

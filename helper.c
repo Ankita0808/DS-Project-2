@@ -1015,7 +1015,7 @@ int receiveTask(int sockfd, char *helper_ip, char *helper_port, int helper_id_ty
 	char buf[MAX_BUF_LEN], url[MAX_URL_LEN],server_ip[100], server_port[100], intermediate_file[MAX_URL_LEN];
 	char tmp_char[MAX_URL_LEN], ii[MAX_URL_LEN], **words, **doc, letter;
 	long int segment_size, offset;
-	int16_t task, word_num;;
+	int16_t task, word_num;
 	while (1)
 	{
 		connfd = accept(sockfd,NULL, NULL);
