@@ -6,6 +6,8 @@
 
 #include "network_function.h"
 
+int helper_id_type; 
+
 struct register_info
 {
 	char server_ip[100];
@@ -107,7 +109,7 @@ void *register_periodically(void *arg)
 		memset(buf, 0, sizeof(buf));
 		
 		// pack the register data
-		packetsize = pack(buf, "hss",(int16_t)1, t->server_ip, t->server_port); // 1: register
+		packetsize = pack(buf, "hss",(int16_t)1, t->server_ip, t->server_port, helper_id_type); // 1: register
 		
 		// send
 		if ((numbytes = send(sockfd, buf, packetsize,MSG_NOSIGNAL)) == -1)
@@ -495,6 +497,13 @@ void update(struct pair_t *pair, char letter, char *resultURL)
 
 int map(char *url, int offset, int size, char *intermediat_file)
 {
+
+	if (helper_id_type==SEARCH_TYPE)
+	{
+		printf("ERROR: Search Helper assigned index work. Terminating helper. ")
+		exit(1);
+	}
+
 	int index = offset;
 	int count = size;
 	char c = '\0';
@@ -522,8 +531,11 @@ int map(char *url, int offset, int size, char *intermediat_file)
 		c = fgetc(fp);
 		index--;
 	}
-	
-	if((c >= 97 && c <= 122) || (c >= 65 && c <= 90))
+
+
+	//DEK: sent an extra byte for all past first offset- if it is a letter, then we were 
+	//in the middle of a word, and the previous offset will take care of it
+	if(offset>0 && ((c >= 97 && c <= 122) || (c >= 65 && c <= 90)))
 		skip_first_one = 1;
 	else
 		skip_first_one = 0;
@@ -699,6 +711,13 @@ int map(char *url, int offset, int size, char *intermediat_file)
 
 int reduce(char *URL, char letter, char *resultURL)
 {
+
+	if (helper_id_type==SEARCH_TYPE)
+	{
+		printf("ERROR: Search Helper assigned index work. Terminating helper. ")
+		exit(1);
+	}
+
 	struct pair_t *head = NULL;
 	struct pair_t *tail = NULL;
 	int i;
@@ -869,6 +888,11 @@ int reduce(char *URL, char letter, char *resultURL)
 
 int query(char *query_word[], int n, char *IIURL, char ***doc)
 {
+	if (helper_id_type==INDEX_TYPE)
+	{
+		printf("ERROR: Index Helper assigned query work. Terminating helper. ")
+		exit(1);
+	}
 	int i;
 	
 	// store result
@@ -1129,11 +1153,25 @@ int receiveTask(int sockfd, char *helper_ip, char *helper_port)
 
 /**************** END TASK FUNCTION **************************/
 
-int main()
+int main(int argc, char *argv[])
 {
 	int sockfd;
 	char helper_ip[100], helper_port[100];
-	
+	if ( argc != 2 ) /* argc should be 2 for correct execution */
+    {
+        printf( "usage: %s {0/1}, where 0 means index worker, 1 means search worker ", argv[0] );
+        exit(0);
+    }
+
+    if (argv[1][0] == 48 || argv[1][0]==0)
+    	helper_id_type=0;
+    else if (argv[1][0]==49 || argv[1][0]==1)
+    	helper_id_type=1;
+    else{
+        printf( "usage: %s {0/1}, where 0 means index worker, 1 means search worker ", argv[0] );
+        exit(0);
+    }
+
 	if ((sockfd = createTCP_server(helper_ip, helper_port)) == 0)
 	{
 		return -1;

@@ -29,6 +29,12 @@ pthread_t server_threads[THREAD_NUMBER];
 int server_thread_available[THREAD_NUMBER];
 pthread_mutex_t server_running_mutex;
 
+//For copy-blocking
+pthread_t copy_thread;
+int copy_needed_thread_safe;
+int copy_in_progress;
+pthread_mutex_t copy_mutex;
+
 /****************** END THREAD VARIABLE PART **************/
 
 /****************** INDEX VARIABLE PART ***********/
@@ -52,7 +58,6 @@ struct helper_table{
 	char ip[100];
 	char port[100];
 	int state; //0: free; 1: working
-	
 };
 
 /****************** END INDEX VARIABLE PART ***********/
@@ -66,6 +71,7 @@ struct namenode_table
 	char helper_port[100];
 	int time;
 	int avail;  // Helper is available or not: 0: avail; 1: not avail
+	int type; //Helper is either a index helper (0) or a search helper (1)
 };
 
 struct namenode_table namenode_table[NAMENODE_TABLE_SIZE];
@@ -107,6 +113,7 @@ int write_namenode_ip(char *addrstr, char *port)
 void *register_Namenode(void *arg)
 {
 	int16_t register_type, program_version;
+	int helper_type;
 	char buf[MAX_BUF_LEN];
 	char program_name[20], procedure_name[20];
 	int i, j, resetTimeout, newServer, packet_size;
@@ -131,7 +138,7 @@ void *register_Namenode(void *arg)
 		pthread_exit(NULL);
 	}
 			
-	unpack(buf,"hss", &register_type, server_ip, server_port);
+	unpack(buf,"hss", &register_type, server_ip, server_port,&helper_type);
 	//read the message and reply						
 	switch (register_type)
 	{
@@ -161,13 +168,14 @@ void *register_Namenode(void *arg)
 			//New Helper Register
 			if (newServer == 0)
 			{
-				printf("New Helper: %s %s\n",server_ip, server_port);
+				printf("New Helper: %s %s %d\n",server_ip, server_port, helper_type);
 				pthread_mutex_lock (&namenode_running_mutex);
 				helper_number++;
 				strcpy(namenode_table[helper_number-1].helper_ip,server_ip);
 				strcpy(namenode_table[helper_number-1].helper_port,server_port);												
 				namenode_table[helper_number-1].time = 2;
 				namenode_table[helper_number-1].avail = 0;
+				namenode_table[helper_number-1].type = helper_type;
 				pthread_mutex_unlock (&namenode_running_mutex);
 			}
 			
@@ -206,6 +214,7 @@ void *update_Namenode(void *arg)
 							strcpy(namenode_table[j].helper_port, namenode_table[j+1].helper_port);
 							namenode_table[j].avail = namenode_table[j+1].avail;
 							namenode_table[j].time = namenode_table[j+1].time;
+							namenode_table[j].type = namenode_table[j+1].type;
 						pthread_mutex_unlock (&namenode_running_mutex);
 					}
 					helper_number--;
@@ -313,6 +322,13 @@ void *nameNode()
 *		call function index or query
 */
 
+int check_current_server_alive()
+{
+
+}
+
+
+
 int write_server_ip(char *addrstr, char *port)
 {
 	FILE *ptr_file;
@@ -364,7 +380,7 @@ int remove_directory(const char *path)
              {
                 if (S_ISDIR(statbuf.st_mode))
                 {
-                   r2  = remove_directory(buf);
+                   r2  = (buf);
                 }
                 else
                 {
@@ -444,7 +460,13 @@ int  server_index(char URL[MAX_URL_LEN], long int segment_size)
 		long int offset = 0;
 		while(fsize > 0)
 		{
-			work_table[work_total].offset = offset;
+			//DEK to make sure we do not split at the word boundary,
+			//look at last byte before the one you are responsible for
+			if (offset == 0)
+				work_table[work_total].offset = offset;
+			else
+				work_table[work_total].offset = offset-1; 
+
 			strcpy(work_table[work_total].URL, filename);
 			work_total++;
 			fsize = fsize - segment_size;
@@ -485,6 +507,8 @@ int  server_index(char URL[MAX_URL_LEN], long int segment_size)
 			for (i=0; i< helper_counter; i++)
 			{
 				for (j=0; j< helper_number; j++)
+					if (namenode_table[j].type==SEARCH_TYPE) continue; //don't include search helpers
+
 					if (strcmp(helper_table[i].ip,namenode_table[j].helper_ip) == 0 
 							&& strcmp(helper_table[i].port,namenode_table[j].helper_port) ==0 )
 					{	
@@ -502,6 +526,8 @@ int  server_index(char URL[MAX_URL_LEN], long int segment_size)
 			int check = 0;
 			for (j=0; j < helper_number; j++)
 			{
+				if (namenode_table[j].type==SEARCH_TYPE) continue; //don't include search helpers
+
 				if (strcmp(helper_table[i].ip, namenode_table[j].helper_ip) ==0 && 
 							strcmp(helper_table[i].port, namenode_table[j].helper_port) == 0)
 				{
@@ -525,6 +551,8 @@ int  server_index(char URL[MAX_URL_LEN], long int segment_size)
 		{
 			if (helper_counter < work_total - work_finished)
 			{
+				if (namenode_table[i].type==SEARCH_TYPE) continue; //don't include search helpers
+
 				if (namenode_table[i].avail == 0) //helper has no job now
 				{	
 					pthread_mutex_lock (&namenode_running_mutex);
@@ -697,6 +725,9 @@ int  server_index(char URL[MAX_URL_LEN], long int segment_size)
 			for (i=0; i< helper_counter; i++)
 			{
 				for (j=0; j< helper_number; j++)
+
+					if (namenode_table[j].type==SEARCH_TYPE) continue; //don't include search helpers
+
 					if (strcmp(helper_table[i].ip,namenode_table[j].helper_ip) == 0 
 							&& strcmp(helper_table[i].port,namenode_table[j].helper_port) ==0 )
 					{	
@@ -714,6 +745,8 @@ int  server_index(char URL[MAX_URL_LEN], long int segment_size)
 			int check = 0;
 			for (j=0; j < helper_number; j++)
 			{
+				if (namenode_table[j].type==SEARCH_TYPE) continue; //don't include search helpers
+
 				if (strcmp(helper_table[i].ip, namenode_table[j].helper_ip) ==0 && 
 							strcmp(helper_table[i].port, namenode_table[j].helper_port) == 0)
 				{
@@ -738,6 +771,8 @@ int  server_index(char URL[MAX_URL_LEN], long int segment_size)
 		{
 			if (helper_counter < reduce_work - work_finished)
 			{
+				if (namenode_table[i].type==SEARCH_TYPE) continue; //don't include search helpers
+
 				if (namenode_table[i].avail == 0) //helper has no job now
 				{	
 					pthread_mutex_lock (&namenode_running_mutex);
@@ -862,6 +897,7 @@ int  server_index(char URL[MAX_URL_LEN], long int segment_size)
 	
 	printf("Finish reduce task, deleting Temp folder\n");
 	remove_directory(file_directory);
+
 	
 	return 1;
 }
@@ -931,7 +967,7 @@ int server_query(char *query_string, char ***doc, int *doc_number)
 	//printf("Done tokenize, number of work  %d\n", work_total);
 	// assign each work to each helper (letter, word string)
 	char ii[MAX_URL_LEN]; //inverted index file directory
-	strcpy(ii, INVERTED_INDEX);
+	strcpy(ii, INVERTED_SEARCH_INDEX);
 	
 	if (work_total == 0) return 1; //no work to do; directory empty
 	printf("Total work is: %d \n", work_total);
@@ -945,6 +981,7 @@ int server_query(char *query_string, char ***doc, int *doc_number)
 			return 0;
 		}
 	
+	//DEK: Somewhere in here it is being blocked by index commands
 	while (1)
 	{
 		printf("Works done: %d/%d\n", work_finished, work_total);
@@ -956,6 +993,8 @@ int server_query(char *query_string, char ***doc, int *doc_number)
 			{
 				for (j=0; j< helper_number; j++)
 					{
+						if (namenode_table[j].type==INDEX_TYPE) continue; //don't include index helpers
+
 						if (strcmp(helper_table[i].ip,namenode_table[j].helper_ip) == 0 
 								&& strcmp(helper_table[i].port,namenode_table[j].helper_port) ==0 )
 						{	
@@ -975,6 +1014,7 @@ int server_query(char *query_string, char ***doc, int *doc_number)
 			int check = 0;
 			for (j=0; j < helper_number; j++)
 			{
+				if (namenode_table[j].type==INDEX_TYPE) continue; //don't include index helpers
 				if (strcmp(helper_table[i].ip, namenode_table[j].helper_ip) ==0 && 
 							strcmp(helper_table[i].port, namenode_table[j].helper_port) == 0)
 				{
@@ -998,6 +1038,7 @@ int server_query(char *query_string, char ***doc, int *doc_number)
 		{
 			if (helper_counter < work_total - work_finished)
 			{
+				if (namenode_table[i].type==INDEX_TYPE) continue; //don't include index helpers
 				if (namenode_table[i].avail == 0) //helper has no job now
 				{	
 					pthread_mutex_lock (&namenode_running_mutex);
@@ -1010,9 +1051,10 @@ int server_query(char *query_string, char ***doc, int *doc_number)
 				}
 			}
 		}
-		// assign work to free helper
+		// assign work to free helper  DEK_important
 		for (i=0; i < helper_counter; i++)
 		{
+
 			if (helper_table[i].state == 0)
 			{
 				for (j=0; j< work_total; j++)
@@ -1235,6 +1277,51 @@ int server_query(char *query_string, char ***doc, int *doc_number)
 	return 1;
 }
 
+void *copy_thread_work(void *arg)
+{
+	pthread_mutex_lock(&copy_mutex);
+	if (copy_in_progress)
+	{
+		printf("Refreshing stored inverted index...");
+
+
+
+		char[200] cpy_cmd;
+		char[200] d1;
+		char[200] d2;
+		strcpy(cpy_cmd,"cp -r ");
+		strpy(d1,INVERTED_INDEX);
+		strpy(d2,INVERTED_INDEX_COPY_TMP);
+		strcat(cpy_cmd,d1);
+		strcat(cpy_cmd," ");
+		strcat(cpy_cmd, d2);
+
+		int status_cpy_cmd = system(cpy_cmd);
+
+		
+		remove_directory(INVERTED_SEARCH_INDEX);
+
+		char[200] mv_cmd;
+		char[200] m1;
+		char[200] m2;
+		strcpy(mv_cmd,"mv ");
+		strpy(d1,INVERTED_INDEX_COPY_TMP);
+		strpy(d2,INVERTED_SEARCH_INDEX);
+		strcat(mv_cmd,d1);
+		strcat(mv_cmd," ");
+		strcat(mv_cmd, d2);
+
+		int status_mv_cmd = system(mv_cmd);
+
+
+		printf("Refreshing complete.");
+		copy_in_progress=0;
+	}
+
+	pthread_mutex_unlock(&copy_mutex);
+	pthread_exit(NULL);
+}
+
 void *server_thread_work(void *arg)
 {
 	char server_ip[100], server_port[100], serverUDP_ip[100], serverUDP_port[100] ;
@@ -1259,8 +1346,15 @@ void *server_thread_work(void *arg)
 	unpack(buf,"h", &request_type);
 	switch(request_type)
 	{
+
+		pthread_mutex_lock(&copy_mutex);
+		while(copy_in_progress==1);
+		pthread_mutex_unlock(&copy_mutex);
+
 		case(1): // indexing request
 			
+
+
 			//Get timer			
 			begin = get_timestamp();
 			
@@ -1303,7 +1397,7 @@ void *server_thread_work(void *arg)
 			break;
 		
 		case(2): // query request
-		
+
 			begin = get_timestamp();
 		
 			unpack(buf,"hs", &request_type, query_string);
@@ -1331,11 +1425,41 @@ void *server_thread_work(void *arg)
 			//wrong message
 			break;
 	}
+
+	pthread_mutex_lock(&copy_mutex);
+	if (request_type==1)
+		copy_needed_thread_safe=1;
+	pthread_mutex_unlock(&copy_mutex);
 	
 	close(connfd);
+
+	pthread_mutex_lock(&copy_mutex);
 	pthread_mutex_lock (&server_running_mutex);
+
 	server_thread_available[thread_id] = 0;
+	int holdoff = 0;
+	if (copy_needed_thread_safe)
+	{
+		for (i = 0; i< THREAD_NUMBER; i++)
+		{
+			if (server_thread_available[THREAD_NUMBER] ==1)
+			{
+				holdoff = 1;
+				break;
+			}
+		}
+		if (holdoff == 0) //No one is doing anything: update the real index
+		{
+			copy_in_progress=1;	
+			if (pthread_create(&copythread, NULL, copy_thread_work, NULL) 
+			{
+				printf("Failed to create copy thread ");
+			}
+		}
+	}
 	pthread_mutex_unlock (&server_running_mutex);
+	pthread_mutex_unlock(&copy_mutex);
+
 	pthread_exit(NULL);
 }
 
@@ -1357,6 +1481,9 @@ int tinyGoogleServer()
 	// initialize all server_threads as available
 	for (i = 0; i< THREAD_NUMBER; i++)
 		server_thread_available[THREAD_NUMBER] = 0;
+
+	//initialize copythread as available
+	copy_thread_available = 0;
 		
 	t = (struct thread_info *) malloc(sizeof(struct thread_info));	
 	
@@ -1408,6 +1535,8 @@ int tinyGoogleServer()
 			pthread_mutex_unlock (&server_running_mutex);
 			//printf("Thread %d is running \n", server_thread_counter );	
 		}
+
+
 	}
 	free(t);
 	pthread_attr_destroy(&attr);	
@@ -1427,6 +1556,7 @@ int main()
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 	pthread_mutex_init (&server_running_mutex, NULL);
+	pthread_mutex_init (&copy_mutex, NULL);
 		
 	// update_Namenode() periodically delete unregister Helper
 	if (pthread_create(&namenode, NULL, nameNode, NULL) != 0) 

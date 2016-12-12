@@ -10,6 +10,8 @@
 #define SERVER_FILENAME2 "//afs/cs.pitt.edu/usr0/ankita/public/CS2510Prj2anm249/server_ip2"
 #define TMP_FILENAME "//afs/cs.pitt.edu/usr0/ankita/public/CS2510Prj2anm249/intermediate_file/"
 #define INVERTED_INDEX "//afs/cs.pitt.edu/usr0/ankita/public/CS2510Prj2anm249/inverted_index/"
+#define INVERTED_SEARCH_INDEX "//afs/cs.pitt.edu/usr0/ankita/public/CS2510Prj2anm249/inverted_search_index/"
+#define INVERTED_INDEX_COPY_TMP "//afs/cs.pitt.edu/usr0/ankita/public/CS2510Prj2anm249/inverted_index_tmp/"
 
 #define MAX_BUF_LEN 3000 // maximum message length to be sent on network
 #define MAX_MES_LEN 1500 // maximum buffer size
@@ -25,3 +27,6 @@
 #define MAX_LINE_LEN 5000
 #define HASH_LENGTH 5000
 #define MAX_PRIME_LESS_THAN_HASH_LEN 4999
+
+#define SEARCH_TYPE 1
+#define INDEX_TYPE 0
