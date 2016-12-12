@@ -400,7 +400,7 @@ void *nameNode()
 
 
 		} else {
-			close(sockf2);
+			close(sockfd2);
 		}
 	} else {
 		//Does not currently exist, so you are the first node
@@ -1629,7 +1629,7 @@ int tinyGoogleServer()
 		redundancy=0;
 	} 
 
-	if (redundancy < 0 && readNameNodeIP (char *existing_sip, char *existing_port, 1)==1)
+	if (redundancy < 0 && readNameNodeIP (existing_sip, existing_port, 1)==1)
 	{
 		if ((sockfd2 = connectTCP_server(existing_sip, existing_port)) == 0)
 		{
