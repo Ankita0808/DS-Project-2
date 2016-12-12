@@ -1290,8 +1290,8 @@ void *copy_thread_work(void *arg)
 		char d1[200];
 		char d2[200];
 		strcpy(cpy_cmd,"cp -r ");
-		strpy(d1,INVERTED_INDEX);
-		strpy(d2,INVERTED_INDEX_COPY_TMP);
+		strcpy(d1,INVERTED_INDEX);
+		strcpy(d2,INVERTED_INDEX_COPY_TMP);
 		strcat(cpy_cmd,d1);
 		strcat(cpy_cmd," ");
 		strcat(cpy_cmd, d2);
@@ -1305,8 +1305,8 @@ void *copy_thread_work(void *arg)
 		char m1[200];
 		char m2[200];
 		strcpy(mv_cmd,"mv ");
-		strpy(d1,INVERTED_INDEX_COPY_TMP);
-		strpy(d2,INVERTED_SEARCH_INDEX);
+		strcpy(d1,INVERTED_INDEX_COPY_TMP);
+		strcpy(d2,INVERTED_SEARCH_INDEX);
 		strcat(mv_cmd,d1);
 		strcat(mv_cmd," ");
 		strcat(mv_cmd, d2);
