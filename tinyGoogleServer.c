@@ -137,11 +137,12 @@ void *register_Namenode(void *arg)
 		pthread_exit(NULL);
 	}
 			
-	unpack(buf,"hss", &register_type, server_ip, server_port,&helper_type);
+	unpack(buf,"hss", &register_type, server_ip, server_port);
 	//read the message and reply						
 	switch (register_type)
 	{
 		case 1: //helper register
+		case 2:
 				
 			//printf("NameNode Receive from helper: ip: %s port: %s\n", server_ip, server_port);
 			
@@ -167,14 +168,17 @@ void *register_Namenode(void *arg)
 			//New Helper Register
 			if (newServer == 0)
 			{
-				printf("New Helper: %s %s %d\n",server_ip, server_port, helper_type);
+				printf("New Helper: %s %s %hu\n",server_ip, server_port, helper_type);
 				pthread_mutex_lock (&namenode_running_mutex);
 				helper_number++;
 				strcpy(namenode_table[helper_number-1].helper_ip,server_ip);
 				strcpy(namenode_table[helper_number-1].helper_port,server_port);												
 				namenode_table[helper_number-1].time = 2;
 				namenode_table[helper_number-1].avail = 0;
-				namenode_table[helper_number-1].type = helper_type;
+				if (register_type==2)
+					namenode_table[helper_number-1].type = SEARCH_TYPE;
+				else 
+					namenode_table[helper_number-1].type = INDEX_TYPE;
 				pthread_mutex_unlock (&namenode_running_mutex);
 			}
 			
