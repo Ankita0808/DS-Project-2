@@ -496,7 +496,7 @@ void update(struct pair_t *pair, char letter, char *resultURL)
 	writeIIT(resultURL, letter, alpha);
 }
 
-int map(char *url, int offset, int size, char *intermediat_file)
+int map(char *url, int offset, int size, char *intermediat_file, int helper_id_type)
 {
 
 	if (helper_id_type==SEARCH_TYPE)
@@ -710,7 +710,7 @@ int map(char *url, int offset, int size, char *intermediat_file)
 	fclose(fp);
 }
 
-int reduce(char *URL, char letter, char *resultURL)
+int reduce(char *URL, char letter, char *resultURL, int helper_id_type)
 {
 
 	if (helper_id_type==SEARCH_TYPE)
@@ -887,7 +887,7 @@ int reduce(char *URL, char letter, char *resultURL)
 	return 1;
 }
 
-int query(char *query_word[], int n, char *IIURL, char ***doc)
+int query(char *query_word[], int n, char *IIURL, char ***doc, int helper_id_type)
 {
 	if (helper_id_type==INDEX_TYPE)
 	{
@@ -1006,7 +1006,7 @@ int query(char *query_word[], int n, char *IIURL, char ***doc)
 /**************** END MAP REDUCE FUNCTION ********************/
 
 /**************** TASK FUNCTION ******************************/
-int receiveTask(int sockfd, char *helper_ip, char *helper_port)
+int receiveTask(int sockfd, char *helper_ip, char *helper_port, int helper_id_type)
 {
 	int  clientfd, work_id, numbytes, packetsize, connfd;
 	char buf[MAX_BUF_LEN], url[MAX_URL_LEN],server_ip[100], server_port[100], intermediate_file[MAX_URL_LEN];
@@ -1041,7 +1041,7 @@ int receiveTask(int sockfd, char *helper_ip, char *helper_port)
 				
 				
 				printf("url is: %s \n segment_size is %d\n offset is %d\n", url, segment_size, offset);
-				map(url, offset, 102400, intermediate_file);
+				map(url, offset, 102400, intermediate_file, helper_id_type);
 				
 				// send back intermediate_file to master
 				if ((clientfd = connectTCP_server(server_ip, server_port)) == 0)
@@ -1070,7 +1070,7 @@ int receiveTask(int sockfd, char *helper_ip, char *helper_port)
 				
 				letter = work_id+97;
 				printf("Reduce word %c\n", letter);
-				if (!reduce(intermediate_file, letter, ii)) break;
+				if (!reduce(intermediate_file, letter, ii, helper_id_type)) break;
 				// send back intermediate_file to master
 				if ((clientfd = connectTCP_server(server_ip, server_port)) == 0)
 				{
@@ -1101,7 +1101,7 @@ int receiveTask(int sockfd, char *helper_ip, char *helper_port)
 				// for (i=0; i< word_num; i++)
 					// printf("Words to query are: %s\n",words[i]);
 				
-				int num = query(words, word_num, ii, &doc);
+				int num = query(words, word_num, ii, &doc, helper_id_type);
 				
 				printf("Number of doc is: %d\n", num);
 				// for(i = 0; i < num; i++)
@@ -1182,7 +1182,7 @@ int main(int argc, char *argv[])
 	}
 	sendRegister(helper_ip, helper_port, helper_id_type);
 	//sleep(3);
-	receiveTask(sockfd, helper_ip, helper_port);
+	receiveTask(sockfd, helper_ip, helper_port, helper_id_type);
 	return 0;
 	
 	
