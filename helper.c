@@ -98,8 +98,8 @@ void *register_periodically(void *arg)
 	//readNameNodeIP(namenode_ip, namenode_port);
 	//printf("Register to namenode \n");
 	
-	redundancy=0; 
-	max_redun=2;
+	int redundancy=0; 
+	int max_redun=2;
 	while (1)
 	{
 		readNameNodeIP(namenode_ip, namenode_port, redundancy);
