@@ -500,7 +500,7 @@ int map(char *url, int offset, int size, char *intermediat_file)
 
 	if (helper_id_type==SEARCH_TYPE)
 	{
-		printf("ERROR: Search Helper assigned index work. Terminating helper. ")
+		printf("ERROR: Search Helper assigned index work. Terminating helper. ");
 		exit(1);
 	}
 
@@ -714,7 +714,7 @@ int reduce(char *URL, char letter, char *resultURL)
 
 	if (helper_id_type==SEARCH_TYPE)
 	{
-		printf("ERROR: Search Helper assigned index work. Terminating helper. ")
+		printf("ERROR: Search Helper assigned index work. Terminating helper. ");
 		exit(1);
 	}
 
@@ -890,7 +890,7 @@ int query(char *query_word[], int n, char *IIURL, char ***doc)
 {
 	if (helper_id_type==INDEX_TYPE)
 	{
-		printf("ERROR: Index Helper assigned query work. Terminating helper. ")
+		printf("ERROR: Index Helper assigned query work. Terminating helper. ");
 		exit(1);
 	}
 	int i;
