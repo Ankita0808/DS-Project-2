@@ -4,11 +4,12 @@
 #include <string.h>
 #include <sys/stat.h>
 
-
 #define NAMENODE_FILENAME "//afs/cs.pitt.edu/usr0/ankita/public/CS2510Prj2anm249/namenode_ip"
+#define NAMENODE_FILENAME2 "//afs/cs.pitt.edu/usr0/ankita/public/CS2510Prj2anm249/namenode_ip2"
 #define SERVER_FILENAME "//afs/cs.pitt.edu/usr0/ankita/public/CS2510Prj2anm249/server_ip"
-#define TMP_FILENAME "//afs/cs.pitt.edu/usr0/ankita/public/CS2510Prj2anm249/intermediate_file/"
-#define INVERTED_INDEX "//afs/cs.pitt.edu/usr0/ankita/public/CS2510Prj2anm249/inverted_index/"
+#define SERVER_FILENAME2 "//afs/cs.pitt.edu/usr0/ankita/public/CS2510Prj2anm249/server_ip2"
+#define TMP_FILENAME "//afs/cs.pitt.edu/usr0/ankita/public/CS2510Prj2anm249/intermediate_file_don/"
+#define INVERTED_INDEX "//afs/cs.pitt.edu/usr0/ankita/public/CS2510Prj2anm249/inverted_index_don/"
 
 #define MAX_BUF_LEN 3000 // maximum message length to be sent on network
 #define MAX_MES_LEN 1500 // maximum buffer size
