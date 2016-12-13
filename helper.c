@@ -1031,7 +1031,8 @@ int receiveTask(int sockfd, char *helper_ip, char *helper_port)
 				if ((clientfd = connectTCP_server(server_ip, server_port)) == 0)
 				{
 					perror("Connection to helper:");
-					return 0;
+					printf("Dropping task...");
+					continue;
 				}
 				memset(buf, 0 , sizeof(buf));
 				// pack the register data: word_id, helper_ip, helper_port, map intermediate file
@@ -1040,7 +1041,8 @@ int receiveTask(int sockfd, char *helper_ip, char *helper_port)
 				if ((numbytes = send(clientfd, buf, packetsize,MSG_NOSIGNAL)) == -1)
 				{
 					perror("send to helper");
-					pthread_exit(NULL);
+					printf("Dropping task...");
+					continue;
 				}
 				close(clientfd);
 				printf("Task done, helper is free now\n");
@@ -1059,7 +1061,8 @@ int receiveTask(int sockfd, char *helper_ip, char *helper_port)
 				if ((clientfd = connectTCP_server(server_ip, server_port)) == 0)
 				{
 					perror("Connection to helper:");
-					return 0;
+					printf("Dropping task...");
+					continue;
 				}
 				memset(buf, 0 , sizeof(buf));
 				// pack the register data: word_id, helper_ip, helper_port, map intermediate file
@@ -1068,7 +1071,8 @@ int receiveTask(int sockfd, char *helper_ip, char *helper_port)
 				if ((numbytes = send(clientfd, buf, packetsize,MSG_NOSIGNAL)) == -1)
 				{
 					perror("send to helper");
-					pthread_exit(NULL);
+					printf("Dropping task...");
+					continue;
 				}
 				close(clientfd);
 				printf("Task done, helper is free now\n");
@@ -1096,7 +1100,8 @@ int receiveTask(int sockfd, char *helper_ip, char *helper_port)
 				if ((clientfd = connectTCP_server(server_ip, server_port)) == 0)
 				{
 					perror("Connection to Server for Query Part:");
-					return 0;
+					printf("Dropping task...");
+					continue;
 				}
 				memset(buf, 0 , sizeof(buf));
 				// pack the register data: word_id, helper_ip, helper_port, map intermediate file
@@ -1109,7 +1114,8 @@ int receiveTask(int sockfd, char *helper_ip, char *helper_port)
 				if ((numbytes = send(clientfd, buf, MAX_BUF_LEN, MSG_NOSIGNAL)) == -1)
 				{
 					perror("Send to Server, query part:");
-					pthread_exit(NULL);
+					printf("Dropping task...");
+					continue;
 				}
 				close(clientfd);
 				printf("Task done, helper is free now\n");

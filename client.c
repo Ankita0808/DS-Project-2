@@ -130,8 +130,10 @@ int main()
 			unpack(buf,"h", &reply);
 			if (reply == 0)
 				printf("Index did not succeed: wrong directory path\n");
-			else 
+			else if (reply == 1)
 				printf("Index succeeded\n");
+			else
+				printf("Indexing failed, lost connection to the server\n");
 			// receive result
 			// if (recv)
 			
