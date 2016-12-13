@@ -309,7 +309,7 @@ void *nameNode(void * t)
 	printf("namenode ip and port is: %s %s \n", namenode_ip, namenode_port);
 	
 	// write IP address and port to File
-	write_namenode_ip(namenode_ip, namenode_port, (int) t);
+	write_namenode_ip(namenode_ip, namenode_port, (int) (long) t);
 	
 	// run namenode loop
 	run_namenode(sockfd);

@@ -50,7 +50,7 @@ struct entry_t
 
 
 /**************** REGISTER FUNCTION **********************/
-int readNameNodeIP (char *server_ip, char *server_port, redundancy)
+int readNameNodeIP (char *server_ip, char *server_port, int redundancy)
 {
 	// read IP address and port from file define in header.h
 	FILE *ptr_file;
