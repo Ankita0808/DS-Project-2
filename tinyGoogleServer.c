@@ -89,11 +89,15 @@ pthread_mutex_t namenode_running_mutex;
 */
 
 // write Tiny Google Server Namenode ip address & port number to FILE
-int write_namenode_ip(char *addrstr, char *port)
+int write_namenode_ip(char *addrstr, char *port, int redundancy)
 {
 	FILE *ptr_file;
 
-	ptr_file =fopen(NAMENODE_FILENAME, "w");
+	if (redundancy==0)
+		ptr_file =fopen(NAMENODE_FILENAME, "w");
+	else
+		ptr_file = fopen(NAMENODE_FILENAME2, "w");
+
 	if (!ptr_file)
 	{
 		perror("server: open file to write");
@@ -172,7 +176,7 @@ void *register_Namenode(void *arg)
 			}
 			
 			break;
-					
+			
 		default:
 		// this is wrong message
 		// reply wrong message
@@ -251,7 +255,17 @@ void run_namenode(int sockfd)
 		{
 			perror("Namenode server: accept");
 		}
-			
+
+		//DEK_TODO
+
+		//MAYBE: you can keep reading from other- if you 
+
+		//See if other nameserver is currently the active one - if it is, send this message to it and have it execute. If not, take responsibility
+		//What does the nameserver need to know about the other one? Just if it is down?
+		//If we add a new helper and it goes to the one the other helpers are not connected to, need to redirect it by not responding?
+
+
+
 		while (1)
 		{
 			namenode_thread_counter++;
@@ -286,7 +300,7 @@ void run_namenode(int sockfd)
    pthread_exit(NULL);
 }
 
-void *nameNode()
+void *nameNode(void * t)
 {
 	int sockfd;
 	char namenode_ip[100], namenode_port[1000];
@@ -295,7 +309,7 @@ void *nameNode()
 	printf("namenode ip and port is: %s %s \n", namenode_ip, namenode_port);
 	
 	// write IP address and port to File
-	write_namenode_ip(namenode_ip, namenode_port);
+	write_namenode_ip(namenode_ip, namenode_port, int (t));
 	
 	// run namenode loop
 	run_namenode(sockfd);
@@ -313,11 +327,14 @@ void *nameNode()
 *		call function index or query
 */
 
-int write_server_ip(char *addrstr, char *port)
+int write_server_ip(char *addrstr, char *port, int redundancy)
 {
 	FILE *ptr_file;
 
-	ptr_file =fopen(SERVER_FILENAME, "w");
+	if (redundancy==0)
+		ptr_file =fopen(SERVER_FILENAME, "w");
+	else
+		ptr_file =fopen(SERVER_FILENAME2, "w");		
 	if (!ptr_file)
 	{
 		perror("server: open file to write");
@@ -1339,7 +1356,7 @@ void *server_thread_work(void *arg)
 	pthread_exit(NULL);
 }
 
-int tinyGoogleServer()
+int tinyGoogleServer(int redundancy)
 {
 	int connfd, sockfd, server_thread_counter = 0, i;
 	struct sockaddr_storage client_addr;
@@ -1370,7 +1387,7 @@ int tinyGoogleServer()
 		}
 		
 	printf("Server IP and Port is %s %s\n", server_ip, server_port);
-	write_server_ip(server_ip, server_port );
+	write_server_ip(server_ip, server_port, redundancy );
 	while (1)
 	{
 		// Accept new request for a connection
@@ -1416,7 +1433,7 @@ int tinyGoogleServer()
 /***************** END TinyGOolgleServer FUNCTION *********/
 
 /***************** BEGIN MAIN FUNCTION *********/
-int main()
+int main(int argc, char* argv[])
 {
 	pthread_t namenode;
 	
@@ -1429,13 +1446,25 @@ int main()
 	pthread_mutex_init (&server_running_mutex, NULL);
 		
 	// update_Namenode() periodically delete unregister Helper
-	if (pthread_create(&namenode, NULL, nameNode, NULL) != 0) 
+
+
+	
+	if (argc > 1)
 	{
-		printf("Failed to create namenode thread\n");
+		if (pthread_create(&namenode, NULL, nameNode, void * (1)) != 0) 
+		{
+			printf("Failed to create namenode thread\n");
+		}
+		tinyGoogleServer(1);
 	}
-	
-	tinyGoogleServer();
-	
+	else 
+	{
+		if (pthread_create(&namenode, NULL, nameNode, void * (0)) != 0) 
+		{
+			printf("Failed to create namenode thread\n");
+		}
+		tinyGoogleServer(0);
+	}
 	// code to send string through network
 	// char *f[100];
 	// char **f2;

@@ -50,13 +50,17 @@ struct entry_t
 
 
 /**************** REGISTER FUNCTION **********************/
-int readNameNodeIP (char *server_ip, char *server_port)
+int readNameNodeIP (char *server_ip, char *server_port, redundancy)
 {
 	// read IP address and port from file define in header.h
 	FILE *ptr_file;
 	char buf[100];
 	// read the global file
-	ptr_file =fopen(NAMENODE_FILENAME, "r");
+	if (redundancy==0)
+		ptr_file =fopen(NAMENODE_FILENAME, "r");
+	else
+		ptr_file = fopen(NAMENODE_FILENAME2, "r");
+
 	if (!ptr_file)
 	{
 		return 0;
@@ -84,6 +88,7 @@ void *register_periodically(void *arg)
 	char namenode_ip[100], namenode_port[100], buf[MAX_BUF_LEN];
 	int sockfd, numbytes, packetsize, reply_code=100;
 	int program_version;
+	int redundancy=0;
 	struct register_info *t;
 		
 	t = (struct register_info *) arg;
@@ -95,12 +100,13 @@ void *register_periodically(void *arg)
 	
 	while (1)
 	{
-		readNameNodeIP(namenode_ip, namenode_port);
+		readNameNodeIP(namenode_ip, namenode_port, redundancy);
 		// open socket to connect to namenode
 		if ((sockfd = connectTCP_server(namenode_ip, namenode_port)) == 0)
 		{
 			perror("Connection to namenode:");
-			sleep(HELPER_REGISTER_TIME_OUT/2);
+			sleep(HELPER_REGISTER_TIME_OUT);
+			redundancy=(redundancy+1)%2;
 			continue;
 		}
 		
@@ -113,7 +119,9 @@ void *register_periodically(void *arg)
 		if ((numbytes = send(sockfd, buf, packetsize,MSG_NOSIGNAL)) == -1)
 		{
 			perror("send to namenode");
-			sleep(HELPER_REGISTER_TIME_OUT/2);
+			sleep(HELPER_REGISTER_TIME_OUT);
+			redundancy=(redundancy+1)%2;
+
 			continue;
 		}
 		close(sockfd);
@@ -845,6 +853,7 @@ int reduce(char *URL, char letter, char *resultURL)
 	}
 	closedir(directory);
 	
+	//DEK_TODO: Potentially a problem here- do not want it to actually update if main server crashes
 	update(head, letter, resultURL);
 
 	// free
