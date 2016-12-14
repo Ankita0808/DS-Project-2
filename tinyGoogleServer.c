@@ -1286,7 +1286,7 @@ void *server_thread_work(void *arg)
 			{
 				memset(buf, 0 , sizeof(buf));
 				// 
-				packetsize = pack(buf, "h", (int16_t)1);
+				packetsize = pack(buf, "h", (int16_t)5);
 				// send
 				if ((numbytes = send(connfd, buf, packetsize,MSG_NOSIGNAL)) == -1)
 				{
